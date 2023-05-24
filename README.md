@@ -1,1 +1,1 @@
-# RL project : Poker 
+# RL project : Friendly Recomendation System 
