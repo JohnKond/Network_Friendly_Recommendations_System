@@ -2,18 +2,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-import itertools
 import math
 import sys
 from prettytable import PrettyTable as pt
 from utils import generate_actions, possible_items, get_reward, calculate_cost, random_policy, generate_relevance_matrix_cached
+import plots
 
 
 class Policy_Iteration_Recommender:
-    def __init__(self, K, U, cached, N, u_min, gamma, theta, a, q, symmetric):
-        # random.seed(seed_no)
-        # np.random.seed(22)
-
+    def __init__(self, K, N, U, cached, u_min, gamma, theta, a, q):
+        
         # number of items/videos
         self.K = K
 
@@ -30,23 +28,11 @@ class Policy_Iteration_Recommender:
         self.theta = theta
 
         # Relevance matrix
-        self.U = np.random.random((self.K, self.K))
-        np.fill_diagonal(self.U, 0)
-
-        if symmetric :
-            self.U = (self.U + np.transpose(self.U))/2
-
-        # number of cached items
-        self.C = int(0.2 * self.K)
-
-        # define cached items
-        # self.cached = random.sample(range(1, self.K), self.C)
-        self.cached = np.random.choice(K, self.C, replace=False)
-
-        #try   
         self.U = U
-        self.cached = cached
 
+        
+        # define cached items
+        self.cached = cached
 
         # probability of ending session
         self.q = q
@@ -71,6 +57,7 @@ class Policy_Iteration_Recommender:
         self.main()
 
 
+
     def PolicyEvaluation(self, policy, max_iterations, theta):
 
         # Initialize the value state function
@@ -84,8 +71,7 @@ class Policy_Iteration_Recommender:
             for state in range(self.K):
 
                 recommendations = policy[state]
-                rec_item1 = recommendations[0]
-                rec_item2 = recommendations[1]
+                
                 relevance = np.sum(self.U[state, recommendations] > self.u_min)
 
                 # generate all posible next states
@@ -94,7 +80,9 @@ class Policy_Iteration_Recommender:
                 if relevance == self.N:
 
                     # expected return if user selects one the recommended items
-                    user_rec = (1/self.N) * ((get_reward(rec_item1, self.cached) + self.gamma * V[rec_item1]) + (get_reward(rec_item2, self.cached) + self.gamma * V[rec_item2]))
+                    # user_rec = (1/self.N) * ((get_reward(rec_item1, self.cached) + self.gamma * V[rec_item1]) + (get_reward(rec_item2, self.cached) + self.gamma * V[rec_item2]))
+
+                    user_rec = (1/self.N) * sum((get_reward(next_state, self.cached) + self.gamma * V[next_state]) for next_state in recommendations)
 
                     # expected return if user does NOT select one the recommended items
                     user_not_rec = self.p_k * sum((get_reward(next_state, self.cached) + self.gamma *V[next_state]) for next_state in possible_states)
@@ -130,24 +118,21 @@ class Policy_Iteration_Recommender:
 
             # for max comparison
             max_value = float("-inf")
-            best_actions = []
 
             # generate all possible actions for state s
-            actions = generate_actions(state, self.K)
+            actions = generate_actions(state, self.K, self.N)
 
             # generate all posible next states
             possible_states = possible_items(state, self.K)
 
             for recommendations in actions:
 
-
-                rec_item1 = recommendations[0]
-                rec_item2 = recommendations[1]
+                # count relevant items
                 relevance = np.sum(self.U[state, recommendations] > self.u_min)
 
                 if relevance == self.N:
                     # expected return if user selects one the recommended items
-                    user_rec = (1/self.N) * (((get_reward(rec_item1, self.cached) + self.gamma * V[rec_item1]) + (get_reward(rec_item2, self.cached) + self.gamma * V[rec_item2])))
+                    user_rec = (1/self.N) * sum((get_reward(next_state, self.cached) + self.gamma * V[next_state]) for next_state in recommendations)
 
                     # expected return if user does NOT select one the recommended items
                     user_not_rec = self.p_k * sum((get_reward(next_state, self.cached) + self.gamma *V[next_state]) for next_state in possible_states)
@@ -174,14 +159,13 @@ class Policy_Iteration_Recommender:
         # Initial policy
         self.policy = random_policy(self.K, self.N)
         self.all_policies.append(self.policy)
-        # print(f'Initial policy , cost {calculate_cost(self.policy, self.U, self.cached)} :')
-        # print(self.policy)
 
         # Initial value state vector
         V = np.zeros(self.K)
 
         # total costs, for plotting
-        self.total_costs = [calculate_cost(self.policy, self.U, self.cached)]
+        initial_cost, _ = calculate_cost(self.policy, self.N, self.U, self.cached)
+        self.total_costs = [initial_cost]
 
         # convergence variable
         policy_stable = False
@@ -193,7 +177,7 @@ class Policy_Iteration_Recommender:
             policy_prev = self.policy
             V = self.PolicyEvaluation(self.policy, max_iterations=1000, theta=self.theta)
             self.policy = self.PolicyImprovement(V)
-            policy_cost = calculate_cost(self.policy, self.U, self.cached)
+            policy_cost, _ = calculate_cost(self.policy, self.N, self.U, self.cached)
             self.all_policies.append(self.policy)
             self.total_costs.append(policy_cost)
 
@@ -212,26 +196,10 @@ class Policy_Iteration_Recommender:
 
 
 
-    # Function to calculate the total cost given the policy
-    def calculate_cost(self, policy):
-        total_cost = 0
-        for i in range(len(self.U)):
-            action = policy[i]
-            rec_item1 = action[0]
-            rec_item2 = action[1]
-
-            if rec_item1 not in self.cached:
-                total_cost += 1
-            if rec_item2 not in self.cached:
-                total_cost += 1
-
-            return total_cost
-
-
     def plot(self):
         #  Plot total cost per iteration
-        print(self.total_costs)
-        plt.plot(range(len(self.total_costs)), self.total_costs)
+        # print(self.total_costs)
+        plt.plot(self.total_costs)
         plt.xlabel('Iteration')
         plt.ylabel('Total Cost')
         plt.title('Total Cost per Iteration')
@@ -241,12 +209,11 @@ class Policy_Iteration_Recommender:
 
     def log(self):
         tb = pt()
-        tb.title = f'Policy Iteration Recommender Policy - cost = {self.total_costs[-1]}'
+        tb.title = 'Policy Iteration Recommender Policy'
         tb.field_names = ["State","Action", "Relevance"]
 
         for key, value in self.policy.items():
-            tb.add_row([key,value, f'{self.U[key,value[0]]}  {self.U[key,value[1]]}'])
-            # print(f'{key} : {value} = [{self.U[key,value[0]]}  {self.U[key,value[1]]}]')
+            tb.add_row([key,value, f'{self.U[key,value]}'])
         print(tb)
 
 
@@ -281,13 +248,7 @@ class Policy_Iteration_Recommender:
 
 
     def main(self):
-        # print('Relevance matrix')
-        # print(self.U,'\n')
-        # print('Most relevant items for each state :')
-        # for state in range(len(self.U)):
-            # most_rel = np.argsort(self.U[state])
-            # two_most_rel = most_rel[-2:]
-            # print(f'{state} : {two_most_rel} = [{self.U[state,two_most_rel[0]]}  {self.U[state,two_most_rel[1]]}]')
-
-        print(f'\n Cached items : {sorted(self.cached)}\n\n\n')
-        # self.Policy_Iteration_Recommender()
+        self.Policy_Iteration_Recommender()
+        self.log()
+        print('\n\n\n')
+        plots.plot_policy_evaluation_heatmap(self.policy, self.U, self.u_min, self.cached, self.N, 'Policy Iteration')
