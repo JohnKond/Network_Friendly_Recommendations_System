@@ -50,7 +50,7 @@ def plot_policy_evaluation_heatmap(policy, U, u_min, cached, N, alg):
 
     # Set labels and title
     # plt.xlabel('State')
-    plt.title(f'Evaluation Heatmap - {alg}')
+    # plt.title(f'Evaluation Heatmap - {alg}')
 
     # Remove y-axis ticks and labels
     plt.yticks([])
@@ -130,7 +130,6 @@ def relevance_heatmap(relevance_matrix, threshold):
         None. Displays the heatmap plot.
 
     """
-
     # Apply threshold to the relevance matrix
     masked_matrix = np.where(relevance_matrix > threshold, 1, 0)
 
@@ -229,8 +228,8 @@ def plot_multiple_reward(reward_per_episode_list, num_episodes, alg, K, N):
         plt.plot(reward_per_episode,color="green")
         plt.xlabel('Episode')
         plt.ylabel('Reward')
-        plt.title('Reward per Episode')
-
+        
+    plt.title(f'{alg} - Reward per Episode')
     plt.tight_layout()
     plt.show()
 
@@ -245,6 +244,8 @@ def plot_multiple_average_reward(reward_per_episode_list, window_size, num_episo
     plt.style.use('seaborn-v0_8-whitegrid')
 
     for reward_per_episode in reward_per_episode_list:
+        
+        # moving_avg_reward = np.cumsum(reward_per_episode) / [*range(1,num_episodes+1)]
 
         # Calculate moving average with a window size
         moving_avg_reward = moving_average(reward_per_episode, window_size)

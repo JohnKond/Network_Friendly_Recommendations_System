@@ -16,12 +16,13 @@ import gym
 from gym import spaces
 from prettytable import PrettyTable as pt
 from utils import generate_relevance_matrix_cached, calculate_cost
+import plots
 from plots import plot_multiple_cost, plot_multiple_reward, plot_cost_reward, plot_multiple_average_reward
 
 
 # plt.ioff()
 
-
+'''
 
 class RecommendationEnvironment():
     def __init__(self, K, N, U, cached, u_min, q, alpha):
@@ -86,7 +87,6 @@ class RecommendationEnvironment():
         # Check if the session ends with probability q
         if np.random.rand() < self.q:
             done = True
-            return self.current_state, 0, done
 
 
         # Calculate relevance of recommended items
@@ -97,6 +97,7 @@ class RecommendationEnvironment():
         if relevance == self.N :
             # Check if the user chooses a recommended item
             if np.random.uniform(0, 1) < self.alpha:
+            return self.current_state, 0, done
                 selected_item = np.random.choice(action)
             else:
                 # User chooses any item from the entire catalog with uniform probability
@@ -117,7 +118,7 @@ class RecommendationEnvironment():
 
         return self.current_state, reward, done
 
-
+'''
 
 class DQN(nn.Module):
     def __init__(self, state_dim, action_dim, hidden_dim):
@@ -202,7 +203,7 @@ class ReplayMemory(object):
 
 
 
-def select_action(state_tensor, input_tensor, K, N, epsilon, device, policy_net, total_steps):
+def select_action(env, state_tensor, input_tensor, epsilon, device, policy_net, total_steps):
     """
     Select an action based on an epsilon-greedy policy.
 
@@ -219,17 +220,17 @@ def select_action(state_tensor, input_tensor, K, N, epsilon, device, policy_net,
         torch.Tensor: A tensor containing the selected recommendations.
     """
 
-    EPS_START = 0.9
-    EPS_END = 0.05
-    EPS_DECAY = 1000
-    epsilon = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * total_steps / EPS_DECAY)
+    # EPS_START = 0.9
+    # EPS_END = 0.05
+    # EPS_DECAY = 1000
+    # epsilon = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * total_steps / EPS_DECAY)
 
     # print(epsilon)
 
     # Generate a random number between 0 and 1
     if np.random.rand() < epsilon:
         # Select a random action with probability epsilon
-        action = np.random.choice(K, N, replace=False)
+        action = np.random.choice(env.K, env.N, replace=False)
         recommendations = torch.tensor(action, device=device)
     else:
         # Select the action with the highest Q-value from the policy network
@@ -237,13 +238,13 @@ def select_action(state_tensor, input_tensor, K, N, epsilon, device, policy_net,
             q_values = policy_net.forward(input_tensor)
 
         q_values[state_tensor] = -np.inf
-        _, recommendations = q_values.topk(N)
+        _, recommendations = q_values.topk(env.N)
 
     return recommendations
 
 
 # Define the Q-learning function
-def q_learning(env, N, policy_net, target_net, optimizer, memory, batch_size, gamma, device):
+def q_learning(env, policy_net, target_net, optimizer, memory, batch_size, gamma, device):
     """
     Optimization using Q-learning algorithm in DQN.
 
@@ -293,7 +294,7 @@ def q_learning(env, N, policy_net, target_net, optimizer, memory, batch_size, ga
     # Compute the Q-values for the next state-action pairs from the target network
     next_state_values = torch.zeros(batch_size, device=device)
     next_state_input_batch = torch.cat((non_final_next_states.view(-1, 1), next_states_relevance_scores_tensor), dim=1).squeeze(1).to(device)
-    next_state_values[non_final_mask] = torch.mean(torch.topk(target_net.forward(next_state_input_batch),  N, dim=1)[0],1)
+    next_state_values[non_final_mask] = torch.mean(torch.topk(target_net.forward(next_state_input_batch),  env.N, dim=1)[0],1)
 
     # Compute the expected Q-values
     expected_state_action_values = (next_state_values * gamma) + reward_batch
@@ -309,7 +310,7 @@ def q_learning(env, N, policy_net, target_net, optimizer, memory, batch_size, ga
 
 
 # Define the main DQN training function
-def dqn_train(env, state_dim, hidden_dim, N, batch_size, gamma, target_update, num_episodes, TAU, device):
+def dqn_train(env, state_dim, hidden_dim, batch_size, gamma, target_update, num_episodes, TAU, device):
     """
     Main training function for Deep Q-Network (DQN).
 
@@ -356,7 +357,6 @@ def dqn_train(env, state_dim, hidden_dim, N, batch_size, gamma, target_update, n
 
     # Start the training loop
     for episode in range(1,num_episodes+1):
-
         state = env.reset()
         state_tensor = torch.tensor(state, dtype=torch.long, device=device).unsqueeze(0)
 
@@ -376,27 +376,31 @@ def dqn_train(env, state_dim, hidden_dim, N, batch_size, gamma, target_update, n
             input = np.insert(env.U[state],0,state)
             input_tensor = torch.tensor(input, dtype=torch.float, device=device)
             
+            # select_action(env, state_tensor, input_tensor, epsilon, device, policy_net, total_steps):
 
             # Select an action using epsilon-greedy policy
-            action = select_action(state_tensor, input_tensor, state_dim, N, epsilon, device, policy_net, total_steps)
+            action = select_action(env, state_tensor, input_tensor, epsilon, device, policy_net, total_steps)
 
             # Take a step in the environment and observe reward and next state
-            next_state, reward, done = env.step(action.cpu())
+            next_state, reward, done = env.step(state, action.cpu())
             reward = torch.tensor(reward, device=device).unsqueeze(0)
-            next_state = torch.tensor(next_state, dtype=torch.long, device=device).unsqueeze(0)
+            next_state_tensor = torch.tensor(next_state, dtype=torch.long, device=device).unsqueeze(0)
 
             # Store experience in memory
-            memory.push(state_tensor, action, next_state, reward)
+            memory.push(state_tensor, action, next_state_tensor, reward)
 
-            # Move to the next state
-            state_tensor = next_state
+            
 
             # Update the total reward and cost
             total_reward += reward.item()
 
             # Perform Q-learning update if enough experiences are available
             if len(memory) >= batch_size:
-                q_learning(env, N, policy_net, target_net, optimizer, memory, batch_size, gamma, device)
+                q_learning(env, policy_net, target_net, optimizer, memory, batch_size, gamma, device)
+
+            # Move to the next state
+            state_tensor = next_state_tensor
+            state = next_state
 
         # Previous, just load state dict
         # target_net.load_state_dict(policy_net.state_dict())
@@ -421,25 +425,23 @@ def dqn_train(env, state_dim, hidden_dim, N, batch_size, gamma, target_update, n
     return policy_net, rewards_per_episode, cost_per_episode
 
 
-def extract_policy(env, K, N, policy_net, device):
+def extract_policy(env, policy_net, device):
     """
     Extracts the policy (recommendations) from the trained policy network.
 
     Args:
         env: The environment.
-        K (int): The total number of content items.
-        N (int): The number of recommendations.
         policy_net: The trained policy network.
 
     Returns:
         policy (dict): A dictionary mapping states to recommended items.
     """
     policy = {}
-    state_tensors = torch.arange(K, dtype=torch.long, device=device).unsqueeze(0)  # Create a tensor for all states
+    state_tensors = torch.arange(env.K, dtype=torch.long, device=device).unsqueeze(0)  # Create a tensor for all states
 
     inputs = []  # Initialize a list to store input tensors
 
-    for state in range(K):
+    for state in range(env.K):
         input = np.insert(env.U[state], 0, state)
         inputs.append(input)
 
@@ -456,7 +458,7 @@ def extract_policy(env, K, N, policy_net, device):
         q_values = policy_net(input_tensors)  # Compute Q-values
 
     q_values[state_tensors, state_tensors] = -np.inf  # Set Q-values for the current state to -inf
-    _, recommendations = q_values.topk(N)  # Get the top-N recommendations
+    _, recommendations = q_values.topk(env.N)  # Get the top-N recommendations
     recommendations_np = recommendations.cpu().numpy()  # Convert recommendations tensor to a NumPy array
 
     for state, recs in enumerate(recommendations_np):
@@ -479,12 +481,12 @@ def print_policy(env, policy):
     tb.field_names = ["Watching","Recommendations","Relevance"]
 
     for key, value in policy.items():
-        tb.add_row([key,value.tolist(), f'{env.U[key,value[0]]}  {env.U[key,value[1]]}'])
+        tb.add_row([key,sorted(value.tolist()), f'{env.U[key,sorted(value.tolist())]}'])
     print(tb)
 
 
 
-def DQN_run(K, N, U, u_min, alpha, q, gamma, cached, num_episodes, device) :
+def DQN_run(env, gamma, num_episodes, device) :
     """
     Run the Deep Q-Network (DQN) algorithm in a recommendation system environment.
 
@@ -500,37 +502,20 @@ def DQN_run(K, N, U, u_min, alpha, q, gamma, cached, num_episodes, device) :
         cost_per_episode (list): Cost per episode during training.
         reward_per_episode (list): Reward per episode during training.
     """
-    # u_min = 0.5  # Relevance threshold
-    # alpha = 0.8  # Probability of choosing a recommended item
-    # q = 0.2     # Probability of ending the session
-    # gamma = 0.99  # Discount factor
-    # memory = deque(maxlen=1000)  # Memory buffer for experience replay
+    
+    
+    
     batch_size = 64  # Batch size for training the DQN
-    TAU = 0.005
+    TAU = 0.005 # soft update rate
 
-    # Initialize Recommendation System enviroment
-    recommendation_environment = RecommendationEnvironment(
-        K = K,
-        N = N,
-        U = U,
-        cached = cached,
-        u_min = u_min,
-        q = q,
-        alpha = alpha
-        )
-
-
-    # print('Cached items : ',sorted(recommendation_environment.cached_items))
-    # print('Relevance matrix :',recommendation_environment.U[0])
 
     dqn_start_time = time.time()
 
     # Start training
     policy_net, reward_per_episode, cost_per_episode = dqn_train(
-        env = recommendation_environment,
-        state_dim = K,
+        env = env,
+        state_dim = env.K,
         hidden_dim = 128,
-        N = N,
         batch_size = batch_size,
         gamma = gamma,
         target_update = 20,
@@ -541,8 +526,9 @@ def DQN_run(K, N, U, u_min, alpha, q, gamma, cached, num_episodes, device) :
 
     print("DQN : --- %s seconds ---" % (time.time() - dqn_start_time))
 
-    policy = extract_policy(recommendation_environment, K, N, policy_net, device)
-    print_policy(recommendation_environment, policy)
+    policy = extract_policy(env, policy_net, device)
+    print_policy(env, policy)
+    plots.plot_policy_evaluation_heatmap(policy, env.U, env.u_min, env.cached, env.N, 'DQN')
     # plot_multiple_reward([reward_per_episode], num_episodes,['DQN'], K, N)
     plot_multiple_average_reward([reward_per_episode], int(num_episodes/10), num_episodes, ['DQN'], 'DQN')
 
