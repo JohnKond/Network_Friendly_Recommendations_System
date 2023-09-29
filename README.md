@@ -34,10 +34,13 @@ The project is organized as follows:
 ## Installation
 
 To run the code, follow these steps:
-
-1. Install the required packages by running the command :  pip install -r /path/to/requirements.txt
-2. Navigate to the `src/` directory in your terminal or command prompt.
-3. The script has the following parameters:
+1. Clone the repository:  
+   ```git clone https://github.com/JohnKond/Network_Friendly_Recommendations_System```
+2. Browse into the project folder and Install the required packages by running the command:  
+   ```cd Network_Friendly_Recommendations_System ```  
+   ```pip install -r requirements.txt```
+3. Navigate to the `src/` directory in your terminal or command prompt.
+4. The script has the following parameters:
     - **--alg** (algorithm to run)
     - **--K** (number of items)
     - **--N** (number of recommendations)
@@ -47,5 +50,5 @@ To run the code, follow these steps:
     
 Please read carefully the project report in order to better understand the impact of the above parameters.
 
-4. Run the `main.py` script by executing the following command and using the your preferred parameters: 
-```python main.py --alg DQN --K 1000 --N 6 --u_min 0.3 --q 0.2 --alpha 0.8 --num_episodes 1000```
+4. Run the `main.py` script by executing the following command and using the your preferred parameters:  
+   ```python main.py --alg DQN --K 1000 --N 6 --u_min 0.3 --q 0.2 --alpha 0.8 --num_episodes 1000```
