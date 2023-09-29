@@ -1,17 +1,22 @@
 # import necessary libraries
 import numpy as np
 import matplotlib.pyplot as plt
-import random
-import math
-import sys
 from prettytable import PrettyTable as pt
-from utils import generate_actions, possible_items, get_reward, calculate_cost, random_policy, generate_relevance_matrix_cached
+from utils import generate_actions, possible_items, get_reward, calculate_cost, random_policy
 import plots
 
 
 class Policy_Iteration_Recommender:
     def __init__(self, env, gamma, theta):
-        
+        """
+        Initialize the Policy Iteration Recommender.
+
+        Parameters:
+        - env: The environment.
+        - gamma: The discount factor.
+        - theta: The threshold for convergence.
+        """
+
         self.env = env
 
         # discount factor
@@ -39,6 +44,16 @@ class Policy_Iteration_Recommender:
 
 
     def PolicyEvaluation(self, policy, max_iterations):
+        """
+        Perform policy evaluation.
+
+        Parameters:
+        - policy: The policy to evaluate.
+        - max_iterations: Maximum number of iterations for convergence.
+
+        Returns:
+        - V: The value state function.
+        """
 
         # Initialize the value state function
         V = np.zeros(self.env.K)
@@ -78,7 +93,6 @@ class Policy_Iteration_Recommender:
 
             # convergence check
             if np.max(np.abs(V - V_prev)) <= self.theta:
-                # print(f'Converged on {i} iterations')
                 break
 
             # max_iterations check
@@ -90,6 +104,16 @@ class Policy_Iteration_Recommender:
 
 
     def PolicyImprovement(self, V):
+        """
+        Perform policy improvement.
+
+        Parameters:
+        - V: The value state function.
+
+        Returns:
+        - new_policy: The updated policy.
+        """
+
         #initialize new policy dict
         new_policy = {}
 
@@ -136,6 +160,10 @@ class Policy_Iteration_Recommender:
 
 
     def Policy_Iteration_Recommender(self):
+        """
+        Perform policy iteration for the recommender system.
+        """
+         
         # Initial policy
         self.policy = random_policy(self.env.K, self.env.N)
         self.all_policies.append(self.policy)
@@ -161,33 +189,17 @@ class Policy_Iteration_Recommender:
             self.all_policies.append(self.policy)
             self.total_costs.append(policy_cost)
 
-
-            # print(f'New policy, cost {calculate_cost(self.policy, self.U, self.cached)} : ')
-
-            # print(self.policy)
-
             if policy_prev == self.policy:
                 policy_stable = True
             iteration += 1
 
-
-        # self.total_costs = [x for x in self.total_costs]
         self.iterations = iteration
 
 
-
-    def plot(self):
-        #  Plot total cost per iteration
-        # print(self.total_costs)
-        plt.plot(self.total_costs)
-        plt.xlabel('Iteration')
-        plt.ylabel('Total Cost')
-        plt.title('Total Cost per Iteration')
-        plt.show()
-        return None
-
-
     def log(self):
+        """
+        Print the policy details.
+        """
         tb = pt()
         tb.title = 'Policy Iteration Recommender Policy'
         tb.field_names = ["State","Action", "Relevance"]
@@ -197,39 +209,11 @@ class Policy_Iteration_Recommender:
         print(tb)
 
 
-    def plot_grid(self):
-        colors = np.zeros(( self.env.K,len(self.all_policies)))
-
-        i = 0
-        for policy in self.all_policies:
-            for state in range(self.env.K):
-                recommendations = policy[state]
-                num_cached = sum([1 if item in self.env.cached else 0 for item in recommendations])
-                if num_cached == 2:
-                    colors[state, i] = 0  # Green
-                elif num_cached == 1:
-                    colors[state, i] = 0.5  # Orange
-                else:
-                    colors[state, i] = 1  # Red
-            i += 1
-
-        fig, ax = plt.subplots()
-        data = ax.imshow(colors, cmap="Paired_r", origin="lower", vmin=0)
-        # plt.title('Cached Recommendations in Policy Iteration')
-        plt.xlabel('Number of Iterations')
-        plt.ylabel('States')
-        ax.set_xticks(np.arange(i+1)-0.5, minor=True)
-        ax.set_yticks(np.arange(self.K+1)-0.5, minor=True)
-        ax.grid(which="minor")
-        ax.tick_params(which="minor", size=0)
-        # plt.legend(['Cached','Uncached'])
-        # plt.colorbar(data)
-        plt.show()
-
-
     def main(self):
+        """
+        Main function to execute the policy iteration recommender.
+        """
         self.Policy_Iteration_Recommender()
         self.log()
         print('\n\n\n')
         plots.plot_policy_evaluation_heatmap(self.policy, self.env.U, self.env.u_min, self.env.cached, self.env.N, 'Policy Iteration')
-        # plots.plot_multiple_average_reward()

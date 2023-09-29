@@ -1,12 +1,24 @@
 import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from matplotlib.pyplot import figure
 import seaborn as sns
 
 
 def plot_policy_evaluation_heatmap(policy, U, u_min, cached, N, alg):
+    """
+    Plots a heatmap to visualize the evaluation of the policy based on relevance and caching.
+
+    Args:
+        policy (dict): A dictionary mapping states to recommended items.
+        U (numpy.ndarray): Relevance matrix representing item relevance to users.
+        u_min (float): Minimum relevance threshold.
+        cached (list): List of cached items.
+        N (int): Number of recommended items.
+        alg (str): Algorithm name for labeling the plot.
+
+    Returns:
+        None. Displays the heatmap plot.
+    """
     K = len(policy)
     evaluation_values = []  # List to store evaluation values
 
@@ -29,8 +41,7 @@ def plot_policy_evaluation_heatmap(policy, U, u_min, cached, N, alg):
         return
 
     # Define custom colors for the heatmap and corresponding labels
-    # colors = ["#2ca25f", "#90EE90", "#98FB98", "orangered"]  # Green, Light green, Lighter green, Red
-    colors = ["#2ca25f", "#90EE90", "lightblue", "orangered"]  # Green, Light green, Lighter green, Red
+    colors = ["#2ca25f", "#90EE90", "lightblue", "orangered"]  # Green, Light green, Lighter blue, Red
     labels = ["All Relevant, All Cached", "All Relevant, Some Cached", "All Relevant, Few Cached", "All Irrelevant"]
     bounds = [0, 0.9, 1.9, 2.9, 3.9]
 
@@ -39,83 +50,23 @@ def plot_policy_evaluation_heatmap(policy, U, u_min, cached, N, alg):
 
     
     fig = plt.figure(figsize=(K+1, 1.2), dpi=100)  # Adjust the figure size
-    # fig = plt.figure(figsize=(1.2, K+1), dpi=100)  # Adjust the figure size
+    
     # Create the heatmap
     sns.heatmap(evaluation_values,linewidth=.5, cmap=cmap, norm=norm, annot=False, cbar=False, cbar_kws={"ticks": bounds, "label": labels})
-
-    
-
     fig.subplots_adjust(left=0.1, right=0.9, top=0.699, bottom=0.426)
 
 
     # Set labels and title
     # plt.xlabel('State')
-    # plt.title(f'Evaluation Heatmap - {alg}')
+    plt.title(f'Evaluation Heatmap - {alg}')
 
     # Remove y-axis ticks and labels
     plt.yticks([])
     plt.ylim([0,0.5])
     plt.show()
     # fig.tight_layout()
-    fig.savefig(f"{alg}_heat_{K}_{N}.png",dpi=100)
-
-
-    # fig, ax = plt.subplots(figsize=(10, 8))
-    # ax.imshow(evaluation_values, cmap=cmap)
-    # ax.set_xticks([*range(0,K)])
-    # ax.set_ybound([0,0.5])
-    # Show the plot
-    # plt.show()
+    # fig.savefig(f"{alg}_heat_{K}_{N}.png",dpi=100)
     return
-
-
-def policy_heatmap(policy, cashed_items, u_min):
-    """
-    Creates a heatmap based on the policy dictionary, with red indicating not cashed and green indicating cashed items.
-
-    Args:
-        policy (dict): A dictionary representing the policy, where keys are recommendation indices and values are recommendation items.
-        cashed_items (list or set): A list or set containing the cashed items.
-
-    Returns:
-           None. Displays the heatmap.
-    """
-    # Extract policy keys and values
-    keys = list(policy.keys())
-    values = list(policy.values())
-
-    # Create the heatmap array
-    heatmap = np.zeros((len(max(values, key=len)), len(keys)), dtype=int)
-
-    # Fill the heatmap array with 1 for cashed items
-    for j, item_list in enumerate(values):
-        for i, item in enumerate(item_list):
-            if item in cashed_items:
-                heatmap[i, j] = 1
-
-    # Create the heatmap plot with numbers inside the cells
-    fig, ax = plt.subplots(figsize=(10, 8))
-    ax.imshow(heatmap, cmap='RdYlGn')
-
-    # Add number annotations inside the cells
-    for j in range(len(values)):
-        for i in range(len(values[j])):
-            ax.text(j, i, values[j][i], ha='center', va='center')
-
-    # Add keys to the bottom of the heatmap
-    ax.set_xticks(np.arange(len(keys)))
-    ax.set_xticklabels(keys)
-    ax.set_xlabel('States')
-
-    # Remove ticks and labels from the y-axis
-    ax.set_yticks([])
-    ax.set_ylabel('Recommendations')
-
-    # Set the plot title
-    ax.set_title(f'Policy (Umin: {u_min})')
-
-    # Show the plot
-    plt.show()
 
 
 def relevance_heatmap(relevance_matrix, threshold):
@@ -148,6 +99,17 @@ def relevance_heatmap(relevance_matrix, threshold):
 
 
 def plot_cost_reward(cost_per_episode, reward_per_episode, num_episodes):
+    """
+    Plots the cumulative cost and cumulative reward per episode.
+
+    Args:
+        cost_per_episode (list): List of total costs per episode.
+        reward_per_episode (list): List of total rewards per episode.
+        num_episodes (int): Total number of episodes.
+
+    Returns:
+        None. Displays the plot.
+    """
     horizon = [*range(1, num_episodes+1, 1)]
     cum_costs =  np.cumsum(cost_per_episode) / horizon
     cum_rewards =  np.cumsum(reward_per_episode) / horizon
@@ -183,7 +145,17 @@ def plot_cost_reward(cost_per_episode, reward_per_episode, num_episodes):
 
 
 def plot_multiple_cost(K_list, cost_per_episode_list, num_episodes):
+    """
+    Plots cumulative cost per episode for multiple algorithms.
 
+    Args:
+        K_list (list): List of algorithm names or labels.
+        cost_per_episode_list (list): List of lists containing cost values per episode for each algorithm.
+        num_episodes (int): Total number of episodes.
+
+    Returns:
+        None. Displays the plot.
+    """
     horizon = [*range(1, num_episodes+1, 1)]
     plt.style.use('seaborn-v0_8-whitegrid')
     fig = plt.figure(figsize=(12, 5))
@@ -236,17 +208,37 @@ def plot_multiple_reward(reward_per_episode_list, num_episodes, alg, K, N):
 
 # Function to calculate moving average
 def moving_average(data, window_size):
+    """
+    Calculates the moving average of a dataset.
+
+    Args:
+        data (list): List of data values.
+        window_size (int): Size of the moving average window.
+
+    Returns:
+        np.ndarray: Array containing the moving average.
+    """
     return np.convolve(data, np.ones(window_size)/window_size, mode='valid')
 
 
 def plot_multiple_average_reward(reward_per_episode_list, window_size, num_episodes, legend, alg):
+    """
+    Plots the moving average reward per episode for multiple algorithms.
+
+    Args:
+        reward_per_episode_list (list): List of lists containing reward values per episode for each algorithm.
+        window_size (int): Window size for calculating the moving average.
+        num_episodes (int): Total number of episodes.
+        legend (list): List of algorithm names or labels.
+        alg (str): Algorithm name or label.
+
+    Returns:
+        None. Displays the plot.
+    """
     
     plt.style.use('seaborn-v0_8-whitegrid')
-
     for reward_per_episode in reward_per_episode_list:
         
-        # moving_avg_reward = np.cumsum(reward_per_episode) / [*range(1,num_episodes+1)]
-
         # Calculate moving average with a window size
         moving_avg_reward = moving_average(reward_per_episode, window_size)
 

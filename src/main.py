@@ -1,7 +1,6 @@
 #########################################################
-#                   RL PROJECT                          #
 #       Network Friendly Recomendation System           #
-#           Ioannis Kontogiorgakis                      #
+#       Author :  Ioannis Kontogiorgakis                #
 #########################################################
 
 import numpy as np
@@ -11,15 +10,9 @@ from Environment import RecommendationEnvironment
 from PolicyIteration import Policy_Iteration_Recommender
 from QLearning import Q_Learning_Recommender
 import experiments
-import plots
 from DQN import DQN_run
 import argparse
 
-
-# seed_no = 105
-# seed_no = 72
-
-# toy examples seed : 106
 
 seed_no = 105
 np.random.seed(seed_no)
@@ -77,15 +70,16 @@ if __name__ == '__main__':
     env = RecommendationEnvironment(K=args.K, N=args.N, u_min=args.u_min, q=args.q, alpha=args.alpha)
 
 
-    # if args.alg == 'PI':
-    #     policy_iteration_recommender = Policy_Iteration_Recommender(
-    #         env = env, gamma = 0.99, theta=0.001)
-    # elif args.alg == 'QL':
-    #     q_learning_recommender = Q_Learning_Recommender(
-    #         env=env, gamma = 0.99, lr=0.001, num_episodes=args.num_episodes)    
-    # elif args.alg == 'DQN':
-    #     DQN_run(
-    #     env=env, gamma=0.99, num_episodes = args.num_episodes, device = device)
+    if args.alg == 'PI':
+        policy_iteration_recommender = Policy_Iteration_Recommender(
+            env = env, gamma = 0.99, theta=0.001)
+    elif args.alg == 'QL':
+        q_learning_recommender = Q_Learning_Recommender(
+            env=env, gamma = 0.99, lr=0.001, num_episodes=args.num_episodes)    
+    elif args.alg == 'DQN':
+        DQN_run(
+        env=env, gamma=0.99, num_episodes = args.num_episodes, device = device)
+
 
 
     # Experiments 
@@ -100,13 +94,10 @@ if __name__ == '__main__':
     # experiments.q_learning_multiple_q()
 
     # Run Q-Learning for different alpha parameters
-    experiments.q_learning_multiple_a()
+    # experiments.q_learning_multiple_a()
 
-
-
-
-
-
+    # Run Q-Learning for different number of recommendations
+    # experiments.q_learning_multiple_N()
 
     # Run DQN for different number of items (K)
     # experiments.DQN_multiple_K(device)
@@ -120,22 +111,13 @@ if __name__ == '__main__':
     # Run DQN for different alpha parameters
     # experiments.DQN_multiple_a(device)
 
-    
-
-
-    
+    # Run DQN for different N
+    # experiments.DQN_multiple_N(device)
 
     # Run DQN for large environment
     # experiments.DQN_multiple_K_large(device)
 
-
-
-    # RUN DQN
-    # cost_per_episode_K_10, reward_per_episode_K_10 = DQN_run(K=10,N=2,u_min=0.5, alpha=0.8, q=0.2, gamma=0.99, num_episodes=500, device=device)
-    # cost_per_episode_K_20, reward_per_episode_K_20 = DQN_run(K=20,N=2,u_min=0.5, alpha=0.8, q=0.2, gamma=0.99, num_episodes=6000)
-    # cost_per_episode_K_50, reward_per_episode_K_50 = DQN_run(K=50,N=2,u_min=0.5, alpha=0.8, q=0.2, gamma=0.99, num_episodes=6000)
-    # cost_per_episode_K_100, reward_per_episode_K_100 = DQN_run(K=100,N=2,u_min=0.5, alpha=0.8, q=0.2, gamma=0.99, num_episodes=6000)
-    # cost_per_episode_K_1000, reward_per_episode_K_1000 = DQN_run(K=1000,N=2,u_min=0.5, alpha=0.8, q=0.2, gamma=0.99, num_episodes=6000)
-
+    # compare DQN and QL
+    # experiments.QL_DQN_compare(device)
 
     print('End of execution')
