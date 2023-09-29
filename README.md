@@ -2,7 +2,7 @@
 ## Author : Ioannis Kontogiorgakis
 
 
-![Recommendation System overview](https://github.com/JohnKond/Network_Friendly_Recommendations_System/blob/main/environment_draw.png?raw=true)
+![Recommendation System overview](https://github.com/JohnKond/Network_Friendly_Recommendations_System/blob/main/image.png?raw=true)
 ## Abstract
 
 
