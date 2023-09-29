@@ -27,6 +27,7 @@ The project is organized as follows:
 - `src/QLearning.py`: This file contains the source implementation code of the Q-Learning algorithm.
 - `src/plots.py`: This file contains the code for the plots generated in this project.
 - `src/experiments.py`: This file contains the functions for all the experiments conducted in the report.
+- `src/utils.py`: This file contains the helper functions for the implemented algorithms.
 - `src/main.py`: This file contains the main execution script for this project.
 - `requirements.txt`: This file lists all the required Python packages and their versions needed to run the project.
 
